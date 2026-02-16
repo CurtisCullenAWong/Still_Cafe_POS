@@ -1,5 +1,5 @@
 import React from "react";
-import { View, StyleSheet } from "react-native";
+import { View, StyleSheet, Image } from "react-native";
 import { Text, IconButton, Surface, useTheme } from "react-native-paper";
 import { Product } from "../types/db";
 import { Plus, Minus } from "lucide-react-native";
@@ -19,6 +19,27 @@ export function CartItem({
 
   return (
     <Surface style={styles.container} elevation={0}>
+      <View style={styles.imageContainer}>
+        {product.image_uri ? (
+          <Image source={{ uri: product.image_uri }} style={styles.image} />
+        ) : (
+          <View
+            style={[
+              styles.imagePlaceholder,
+              { backgroundColor: theme.colors.surfaceVariant },
+            ]}
+          >
+            <Text
+              style={[
+                styles.imageInitial,
+                { color: theme.colors.onSurfaceVariant },
+              ]}
+            >
+              {product.name.charAt(0).toUpperCase()}
+            </Text>
+          </View>
+        )}
+      </View>
       <View style={styles.info}>
         <Text variant="bodyLarge" style={styles.name} numberOfLines={1}>
           {product.name}
@@ -108,5 +129,27 @@ const styles = StyleSheet.create({
     textAlign: "right",
     fontWeight: "700",
     fontSize: 14,
+  },
+  imageContainer: {
+    width: 48,
+    height: 48,
+    borderRadius: 8,
+    overflow: "hidden",
+    marginRight: 12,
+  },
+  image: {
+    width: "100%",
+    height: "100%",
+  },
+  imagePlaceholder: {
+    width: "100%",
+    height: "100%",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  imageInitial: {
+    fontSize: 18,
+    fontWeight: "bold",
+    opacity: 0.5,
   },
 });

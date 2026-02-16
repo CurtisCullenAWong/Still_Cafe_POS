@@ -31,20 +31,24 @@ export function ProductGrid({
   const [selectedCategory, setSelectedCategory] = React.useState("All");
   const theme = useTheme();
 
-  const categories = useMemo(
-    () => ["All", ...Array.from(new Set(products.map((p) => p.category)))],
-    [products],
-  );
+  const categories = useMemo(() => {
+    const list = Array.from(new Set(products.map((p) => p.category))).sort(
+      (a, b) => a.localeCompare(b),
+    );
+    return ["All", ...list];
+  }, [products]);
 
   const filteredProducts = useMemo(() => {
-    return products.filter((p) => {
-      const matchesSearch = p.name
-        .toLowerCase()
-        .includes(searchQuery.toLowerCase());
-      const matchesCategory =
-        selectedCategory === "All" || p.category === selectedCategory;
-      return matchesSearch && matchesCategory;
-    });
+    return products
+      .filter((p) => {
+        const matchesSearch = p.name
+          .toLowerCase()
+          .includes(searchQuery.toLowerCase());
+        const matchesCategory =
+          selectedCategory === "All" || p.category === selectedCategory;
+        return matchesSearch && matchesCategory;
+      })
+      .sort((a, b) => a.name.localeCompare(b.name));
   }, [products, searchQuery, selectedCategory]);
 
   const { width } = useWindowDimensions();

@@ -1,5 +1,5 @@
 import React from "react";
-import { View, StyleSheet, TouchableOpacity } from "react-native";
+import { View, StyleSheet, TouchableOpacity, Image } from "react-native";
 import { Text, Surface, useTheme } from "react-native-paper";
 import { Product } from "../types/db";
 
@@ -42,11 +42,15 @@ export function ProductCard({ product, onPress, disabled }: ProductCardProps) {
             },
           ]}
         >
-          <Text
-            style={[styles.initial, { color: theme.colors.onSurfaceVariant }]}
-          >
-            {initial}
-          </Text>
+          {product.image_uri ? (
+            <Image source={{ uri: product.image_uri }} style={styles.image} />
+          ) : (
+            <Text
+              style={[styles.initial, { color: theme.colors.onSurfaceVariant }]}
+            >
+              {initial}
+            </Text>
+          )}
         </View>
 
         <View style={styles.content}>
@@ -108,6 +112,11 @@ const styles = StyleSheet.create({
     fontSize: 32,
     fontWeight: "800",
     opacity: 0.3,
+  },
+  image: {
+    width: "100%",
+    height: "100%",
+    borderRadius: 12,
   },
   content: {
     gap: 6,

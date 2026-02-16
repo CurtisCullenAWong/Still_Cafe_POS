@@ -1,5 +1,12 @@
 import React, { useState, useMemo } from "react";
-import { View, StyleSheet, FlatList, Alert, StatusBar } from "react-native";
+import {
+  View,
+  StyleSheet,
+  FlatList,
+  Alert,
+  StatusBar,
+  Image,
+} from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import {
   Text,
@@ -28,11 +35,13 @@ export function InventoryScreen() {
   );
 
   const filteredProducts = useMemo(() => {
-    return db.products.filter(
-      (p) =>
-        p.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        p.category.toLowerCase().includes(searchQuery.toLowerCase()),
-    );
+    return db.products
+      .filter(
+        (p) =>
+          p.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+          p.category.toLowerCase().includes(searchQuery.toLowerCase()),
+      )
+      .sort((a, b) => a.name.localeCompare(b.name));
   }, [db.products, searchQuery]);
 
   const handleAdd = () => {
@@ -70,6 +79,20 @@ export function InventoryScreen() {
 
   const renderItem = ({ item }: { item: Product }) => (
     <Surface style={styles.itemContainer} elevation={0}>
+      <View style={styles.itemImageContainer}>
+        {item.image_uri ? (
+          <Image source={{ uri: item.image_uri }} style={styles.itemImage} />
+        ) : (
+          <View
+            style={[
+              styles.imagePlaceholder,
+              { backgroundColor: theme.colors.surfaceVariant },
+            ]}
+          >
+            <Package size={24} color={theme.colors.onSurfaceVariant} />
+          </View>
+        )}
+      </View>
       <View style={styles.itemInfo}>
         <View style={styles.itemHeader}>
           <Text variant="titleMedium" style={styles.itemName}>
@@ -261,6 +284,23 @@ const styles = StyleSheet.create({
   },
   itemActions: {
     flexDirection: "row",
+  },
+  itemImageContainer: {
+    width: 60,
+    height: 60,
+    borderRadius: 8,
+    overflow: "hidden",
+    marginRight: 16,
+  },
+  itemImage: {
+    width: "100%",
+    height: "100%",
+  },
+  imagePlaceholder: {
+    width: "100%",
+    height: "100%",
+    alignItems: "center",
+    justifyContent: "center",
   },
   fab: {
     position: "absolute",

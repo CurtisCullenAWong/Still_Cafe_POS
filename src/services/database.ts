@@ -30,6 +30,7 @@ export const initDatabase = async () => {
         name TEXT NOT NULL,
         price REAL NOT NULL,
         stock_qty INTEGER NOT NULL,
+        image_uri TEXT,
         created_at TEXT NOT NULL
       );
     `);
@@ -134,12 +135,13 @@ export const seedProductsFunc = async (products: Product[]) => {
     console.log("Seeding products...");
     for (const p of products) {
       await db.runAsync(
-        "INSERT INTO products (id, category, name, price, stock_qty, created_at) VALUES (?, ?, ?, ?, ?, ?)",
+        "INSERT INTO products (id, category, name, price, stock_qty, image_uri, created_at) VALUES (?, ?, ?, ?, ?, ?, ?)",
         p.id,
         p.category,
         p.name,
         p.price,
         p.stock_qty,
+        p.image_uri || null,
         p.created_at,
       );
     }

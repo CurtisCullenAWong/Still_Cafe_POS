@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { View, StyleSheet } from "react-native";
+import { View, StyleSheet, Image, TouchableOpacity } from "react-native";
 import {
   Modal,
   Portal,
@@ -9,8 +9,11 @@ import {
   useTheme,
   Surface,
   HelperText,
+  IconButton,
 } from "react-native-paper";
 import { Product } from "../types/db";
+import * as ImagePicker from "expo-image-picker";
+import { Camera, X } from "lucide-react-native";
 
 interface ProductFormModalProps {
   visible: boolean;
@@ -31,6 +34,7 @@ export function ProductFormModal({
   const [category, setCategory] = useState("");
   const [price, setPrice] = useState("");
   const [stock, setStock] = useState("");
+  const [imageUri, setImageUri] = useState<string | undefined>(undefined);
 
   const [errors, setErrors] = useState<Record<string, string>>({});
 
@@ -41,16 +45,31 @@ export function ProductFormModal({
         setCategory(initialData.category);
         setPrice(initialData.price.toString());
         setStock(initialData.stock_qty.toString());
+        setImageUri(initialData.image_uri);
       } else {
         // Reset for new product
         setName("");
         setCategory("");
         setPrice("");
         setStock("");
+        setImageUri(undefined);
       }
       setErrors({});
     }
   }, [visible, initialData]);
+
+  const pickImage = async () => {
+    let result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ImagePicker.MediaTypeOptions.Images,
+      allowsEditing: true,
+      aspect: [1, 1],
+      quality: 0.7,
+    });
+
+    if (!result.canceled) {
+      setImageUri(result.assets[0].uri);
+    }
+  };
 
   const validate = () => {
     const newErrors: Record<string, string> = {};
@@ -75,6 +94,7 @@ export function ProductFormModal({
       category,
       price: parseFloat(price),
       stock_qty: parseInt(stock),
+      image_uri: imageUri,
     });
     onDismiss();
   };
@@ -90,6 +110,40 @@ export function ProductFormModal({
           <Text variant="headlineSmall" style={styles.title}>
             {initialData ? "Edit Product" : "New Product"}
           </Text>
+
+          <View style={styles.imageSection}>
+            <TouchableOpacity
+              onPress={pickImage}
+              style={[
+                styles.imagePicker,
+                {
+                  backgroundColor: theme.colors.surfaceVariant,
+                  borderColor: theme.colors.outline,
+                },
+              ]}
+            >
+              {imageUri ? (
+                <View style={styles.imageWrapper}>
+                  <Image source={{ uri: imageUri }} style={styles.image} />
+                  <IconButton
+                    icon={() => <X size={20} color="white" />}
+                    style={styles.removeImageBtn}
+                    onPress={() => setImageUri(undefined)}
+                  />
+                </View>
+              ) : (
+                <View style={styles.imagePlaceholder}>
+                  <Camera size={32} color={theme.colors.onSurfaceVariant} />
+                  <Text
+                    variant="labelMedium"
+                    style={{ color: theme.colors.onSurfaceVariant }}
+                  >
+                    Add Image
+                  </Text>
+                </View>
+              )}
+            </TouchableOpacity>
+          </View>
 
           <View style={styles.form}>
             <View>
@@ -197,5 +251,37 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     gap: 16,
     marginTop: 8,
+  },
+  imageSection: {
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  imagePicker: {
+    width: 120,
+    height: 120,
+    borderRadius: 60,
+    borderWidth: 1,
+    borderStyle: "dashed",
+    overflow: "hidden",
+  },
+  imageWrapper: {
+    width: "100%",
+    height: "100%",
+  },
+  image: {
+    width: "100%",
+    height: "100%",
+  },
+  imagePlaceholder: {
+    flex: 1,
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 8,
+  },
+  removeImageBtn: {
+    position: "absolute",
+    top: -8,
+    right: -8,
+    backgroundColor: "rgba(0,0,0,0.5)",
   },
 });

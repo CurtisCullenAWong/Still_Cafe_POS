@@ -47,7 +47,7 @@ export function useDatabase() {
       const db = await getDB();
 
       const productsResult = await db.getAllAsync<Product>(
-        "SELECT * FROM products ORDER BY category, name",
+        "SELECT * FROM products ORDER BY name",
       );
       setProducts(productsResult);
 
@@ -153,12 +153,13 @@ export function useDatabase() {
     const createdAt = new Date().toISOString();
     try {
       await db.runAsync(
-        "INSERT INTO products (id, category, name, price, stock_qty, created_at) VALUES (?, ?, ?, ?, ?, ?)",
+        "INSERT INTO products (id, category, name, price, stock_qty, image_uri, created_at) VALUES (?, ?, ?, ?, ?, ?, ?)",
         newId,
         product.category,
         product.name,
         product.price,
         product.stock_qty,
+        product.image_uri || null,
         createdAt,
       );
       await refreshData();
@@ -174,7 +175,9 @@ export function useDatabase() {
       const keys = Object.keys(updates);
       if (keys.length === 0) return;
       const setClause = keys.map((k) => `${k} = ?`).join(", ");
-      const values = Object.values(updates);
+      const values = Object.values(updates).map((v) =>
+        v === undefined ? null : v,
+      );
       await db.runAsync(
         `UPDATE products SET ${setClause} WHERE id = ?`,
         ...values,
@@ -397,13 +400,14 @@ export function useDatabase() {
                   // We default stock_qty to 0 if missing to prevent SQL errors
                   for (const p of backup.data.products) {
                     await db.runAsync(
-                      "INSERT INTO products (id, category, name, price, stock_qty, created_at) VALUES (?, ?, ?, ?, ?, ?)",
+                      "INSERT INTO products (id, category, name, price, stock_qty, image_uri, created_at) VALUES (?, ?, ?, ?, ?, ?, ?)",
                       [
                         p.id,
                         p.category,
                         p.name,
                         p.price,
                         p.stock_qty ?? 0, // Ensure inventory count is preserved or defaults to 0
+                        p.image_uri || null,
                         p.created_at,
                       ],
                     );
