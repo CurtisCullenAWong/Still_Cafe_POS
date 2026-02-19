@@ -64,7 +64,7 @@ export const generateReceiptHtml = (data: ReceiptData) => {
     
     @page {
       margin: 0;
-      size: auto;
+      size: 80mm auto;
     }
 
     body {
@@ -178,7 +178,6 @@ export const generateReceiptHtml = (data: ReceiptData) => {
       <div class="meta uppercase">Official Receipt</div>
       <div class="meta">${formatDate(timestamp)}</div>
       ${transactionId ? `<div class="meta">ID: ${transactionId.slice(0, 8)}</div>` : ""}
-      ${isReprint ? `<div class="reprint-badge">REPRINT</div>` : ""}
     </div>
 
     <div class="items-section">
@@ -246,6 +245,174 @@ export const generateReceiptHtml = (data: ReceiptData) => {
       <p>Thank you for your purchase!</p>
       <p>Please come again.</p>
       <p style="margin-top: 10px;">Powered by Café POS</p>
+    </div>
+  </div>
+</body>
+</html>
+  `;
+};
+
+export interface SalesReportData {
+  dateRange: {
+    start: Date;
+    end: Date;
+  };
+  settings: Settings;
+  stats: {
+    grossSales: number;
+    totalSales: number;
+    totalTransactions: number;
+    totalVat: number;
+    totalDiscounts: number;
+    vatableSales: number;
+    vatExemptSales: number;
+  };
+}
+
+export const generateSalesReportHtml = (data: SalesReportData) => {
+  const { dateRange, settings, stats } = data;
+
+  const formatDate = (date: Date) => {
+    return date.toLocaleString("en-US", {
+      year: "numeric",
+      month: "2-digit",
+      day: "2-digit",
+    });
+  };
+
+  const formatCurrency = (amount: number) => {
+    return amount.toLocaleString("en-US", {
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2,
+    });
+  };
+
+  return `
+<!DOCTYPE html>
+<html>
+<head>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0, user-scalable=no" />
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Courier+Prime&display=swap');
+    
+    @page {
+      margin: 0;
+      size: 80mm auto;
+    }
+
+    body {
+      font-family: 'Courier Prime', 'Courier New', monospace;
+      font-size: 12px;
+      line-height: 1.2;
+      color: #000;
+      background: #fff;
+      padding: 0;
+      margin: 0;
+      width: 100%;
+    }
+
+    .container {
+      padding: 5px;
+    }
+
+    .text-center { text-align: center; }
+    .text-right { text-align: right; }
+    .text-left { text-align: left; }
+    .font-bold { fontWeight: bold; }
+    .uppercase { text-transform: uppercase; }
+
+    .header {
+      margin-bottom: 15px;
+      border-bottom: 1px solid #ddd;
+      padding-bottom: 10px;
+    }
+
+    .store-name {
+      font-size: 16px;
+      font-weight: bold;
+      margin: 0 0 5px 0;
+    }
+
+    .meta {
+      color: #555;
+      font-size: 10px;
+      margin: 2px 0;
+    }
+
+    .section-title {
+      font-weight: bold;
+      border-bottom: 1px dashed #aaa;
+      padding-bottom: 5px;
+      margin-top: 10px;
+      margin-bottom: 5px;
+    }
+
+    .row {
+      display: flex;
+      justify-content: space-between;
+      margin-bottom: 4px;
+    }
+
+    .footer {
+      margin-top: 20px;
+      text-align: center;
+      font-size: 10px;
+      color: #888;
+      border-top: 1px solid #eee;
+      padding-top: 10px;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="header text-center">
+      <div class="store-name uppercase">${settings.store_name}</div>
+      <div class="meta uppercase">Sales Report</div>
+      <div class="meta">${formatDate(dateRange.start)} - ${formatDate(dateRange.end)}</div>
+      <div class="meta">Generated: ${new Date().toLocaleString()}</div>
+    </div>
+
+    <div class="section-title">Sales Summary</div>
+    
+    <div class="row">
+      <span>Transactions</span>
+      <span>${stats.totalTransactions}</span>
+    </div>
+
+    <div class="row">
+      <span>Gross Sales</span>
+      <span>${formatCurrency(stats.grossSales)}</span>
+    </div>
+
+    <div class="row">
+      <span>Discounts</span>
+      <span>(${formatCurrency(stats.totalDiscounts)})</span>
+    </div>
+
+    <div class="row font-bold" style="border-top: 1px solid #ddd; padding-top: 5px; margin-top: 5px;">
+      <span>Net Sales</span>
+      <span>${formatCurrency(stats.totalSales)}</span>
+    </div>
+
+    <div class="section-title" style="margin-top: 15px;">Tax Breakdown</div>
+
+    <div class="row">
+      <span>VATable Sales</span>
+      <span>${formatCurrency(stats.vatableSales)}</span>
+    </div>
+
+    <div class="row">
+      <span>VAT Exempt Sales</span>
+      <span>${formatCurrency(stats.vatExemptSales)}</span>
+    </div>
+
+    <div class="row">
+      <span>VAT Amount (${settings.vat_percentage}%)</span>
+      <span>${formatCurrency(stats.totalVat)}</span>
+    </div>
+
+    <div class="footer">
+      <p>End of Report</p>
     </div>
   </div>
 </body>

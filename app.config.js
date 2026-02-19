@@ -31,5 +31,11 @@ export default ({ config }) => ({
     web: {
       favicon: "./assets/favicon.png",
     },
+    extra: {
+      eas: {
+        projectId: "e6256b07-37f5-4e8f-8bd6-f5ce3d239fa2",
+      },
+    },
+    owner: "curtiswong",
   },
 });

@@ -9,6 +9,7 @@ import {
   LayoutDashboard,
   Settings as SettingsIcon,
 } from "lucide-react-native";
+import { Platform, Pressable, useWindowDimensions, View } from "react-native";
 
 // Screens
 import { SalesScreen } from "../screens/SalesScreen";
@@ -56,6 +57,9 @@ const navigationTheme = {
 
 export function AppNavigator() {
   const insets = useSafeAreaInsets();
+  const { width } = useWindowDimensions();
+  const isTablet = width >= 768;
+  const safeBottom = Math.max(insets.bottom, isTablet ? 20 : 12);
 
   return (
     <PaperProvider theme={theme}>
@@ -64,32 +68,83 @@ export function AppNavigator() {
           initialRouteName="Sales"
           screenOptions={({ route }) => ({
             headerShown: false,
-            tabBarIcon: ({ color, size }) => {
+            tabBarHideOnKeyboard: true,
+            tabBarIcon: ({ color, size, focused }) => {
+              const iconSize = focused ? 26 : 24;
               if (route.name === "Sales") {
-                return <ShoppingCart size={size} color={color} />;
+                return <ShoppingCart size={iconSize} color={color} />;
               } else if (route.name === "Inventory") {
-                return <Package size={size} color={color} />;
+                return <Package size={iconSize} color={color} />;
               } else if (route.name === "Reports") {
-                return <LayoutDashboard size={size} color={color} />;
+                return <LayoutDashboard size={iconSize} color={color} />;
               } else if (route.name === "Settings") {
-                return <SettingsIcon size={size} color={color} />;
+                return <SettingsIcon size={iconSize} color={color} />;
               }
               return null;
             },
             tabBarActiveTintColor: theme.colors.primary,
-            tabBarInactiveTintColor: "gray",
+            tabBarInactiveTintColor: theme.colors.onSurfaceVariant,
             tabBarStyle: {
-              height: 60 + insets.bottom,
-              paddingBottom: Math.max(insets.bottom, 10),
-              paddingTop: 10,
+              paddingBottom: safeBottom,
+              paddingTop: 12,
+              height: 58 + safeBottom,
               backgroundColor: theme.colors.surface,
               borderTopWidth: 1,
               borderTopColor: theme.colors.outline,
               elevation: 8,
+              shadowColor: "#000",
+              shadowOffset: { width: 0, height: -2 },
+              shadowOpacity: 0.05,
+              shadowRadius: 3,
             },
             tabBarLabelStyle: {
-              fontSize: 12,
-              fontWeight: "500",
+              fontSize: 11,
+              fontWeight: "600",
+              marginTop: 4,
+            },
+            tabBarButton: (props) => {
+              const { style, children, ref, ...rest } = props as any;
+              const isFirstTab = route.name === "Sales";
+
+              return (
+                <View
+                  style={[
+                    style,
+                    { flexDirection: "row", alignItems: "center" },
+                  ]}
+                >
+                  {!isFirstTab && (
+                    <View
+                      style={{
+                        width: 1,
+                        height: "40%",
+                        backgroundColor: theme.colors.outline,
+                        position: "absolute",
+                        left: 0,
+                        zIndex: 1,
+                      }}
+                    />
+                  )}
+                  <Pressable
+                    {...rest}
+                    android_ripple={{
+                      color: theme.colors.primary + "15",
+                      borderless: true,
+                    }}
+                    style={({ pressed }) => [
+                      {
+                        flex: 1,
+                        height: "100%",
+                        alignItems: "center",
+                        justifyContent: "center",
+                        opacity: Platform.OS === "ios" && pressed ? 0.6 : 1,
+                      },
+                    ]}
+                  >
+                    {children}
+                  </Pressable>
+                </View>
+              );
             },
           })}
         >

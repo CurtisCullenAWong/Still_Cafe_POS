@@ -1,5 +1,14 @@
 import React, { useState, useEffect } from "react";
-import { View, StyleSheet, Image, TouchableOpacity } from "react-native";
+import {
+  View,
+  StyleSheet,
+  Image,
+  TouchableOpacity,
+  ScrollView,
+  KeyboardAvoidingView,
+  Platform,
+  Dimensions,
+} from "react-native";
 import {
   Modal,
   Portal,
@@ -106,114 +115,135 @@ export function ProductFormModal({
         onDismiss={onDismiss}
         contentContainerStyle={styles.container}
       >
-        <Surface style={styles.content}>
-          <Text variant="headlineSmall" style={styles.title}>
-            {initialData ? "Edit Product" : "New Product"}
-          </Text>
-
-          <View style={styles.imageSection}>
-            <TouchableOpacity
-              onPress={pickImage}
-              style={[
-                styles.imagePicker,
-                {
-                  backgroundColor: theme.colors.surfaceVariant,
-                  borderColor: theme.colors.outline,
-                },
-              ]}
+        <KeyboardAvoidingView
+          behavior={Platform.OS === "ios" ? "padding" : "height"}
+          style={{ width: "100%", alignItems: "center" }}
+        >
+          <Surface style={styles.content}>
+            <ScrollView
+              showsVerticalScrollIndicator={false}
+              contentContainerStyle={styles.scrollContent}
             >
-              {imageUri ? (
-                <View style={styles.imageWrapper}>
-                  <Image source={{ uri: imageUri }} style={styles.image} />
-                  <IconButton
-                    icon={() => <X size={20} color="white" />}
-                    style={styles.removeImageBtn}
-                    onPress={() => setImageUri(undefined)}
-                  />
-                </View>
-              ) : (
-                <View style={styles.imagePlaceholder}>
-                  <Camera size={32} color={theme.colors.onSurfaceVariant} />
-                  <Text
-                    variant="labelMedium"
-                    style={{ color: theme.colors.onSurfaceVariant }}
+              <Text variant="headlineSmall" style={styles.title}>
+                {initialData ? "Edit Product" : "New Product"}
+              </Text>
+
+              <View style={styles.imageSection}>
+                <View style={styles.imageContainer}>
+                  <TouchableOpacity
+                    onPress={pickImage}
+                    style={[
+                      styles.imagePicker,
+                      {
+                        backgroundColor: theme.colors.surfaceVariant,
+                        borderColor: theme.colors.outline,
+                      },
+                    ]}
                   >
-                    Add Image
-                  </Text>
+                    {imageUri ? (
+                      <Image source={{ uri: imageUri }} style={styles.image} />
+                    ) : (
+                      <View style={styles.imagePlaceholder}>
+                        <Camera
+                          size={32}
+                          color={theme.colors.onSurfaceVariant}
+                        />
+                        <Text
+                          variant="labelMedium"
+                          style={{ color: theme.colors.onSurfaceVariant }}
+                        >
+                          Add Image
+                        </Text>
+                      </View>
+                    )}
+                  </TouchableOpacity>
+                  {imageUri && (
+                    <IconButton
+                      icon={() => <X size={16} color="white" />}
+                      containerColor={theme.colors.error}
+                      style={styles.removeImageBtn}
+                      onPress={() => setImageUri(undefined)}
+                      size={16}
+                    />
+                  )}
                 </View>
-              )}
-            </TouchableOpacity>
-          </View>
-
-          <View style={styles.form}>
-            <View>
-              <TextInput
-                mode="outlined"
-                label="Product Name"
-                value={name}
-                onChangeText={setName}
-                error={!!errors.name}
-              />
-              <HelperText type="error" visible={!!errors.name}>
-                {errors.name}
-              </HelperText>
-            </View>
-
-            <View>
-              <TextInput
-                mode="outlined"
-                label="Category"
-                value={category}
-                onChangeText={setCategory}
-                error={!!errors.category}
-                placeholder="e.g. Coffee, Pastry"
-              />
-              <HelperText type="error" visible={!!errors.category}>
-                {errors.category}
-              </HelperText>
-            </View>
-
-            <View style={styles.row}>
-              <View style={styles.col}>
-                <TextInput
-                  mode="outlined"
-                  label="Price"
-                  value={price}
-                  onChangeText={setPrice}
-                  keyboardType="numeric"
-                  left={<TextInput.Affix text="₱ " />}
-                  error={!!errors.price}
-                />
-                <HelperText type="error" visible={!!errors.price}>
-                  {errors.price}
-                </HelperText>
               </View>
 
-              <View style={styles.col}>
-                <TextInput
-                  mode="outlined"
-                  label="Stock"
-                  value={stock}
-                  onChangeText={setStock}
-                  keyboardType="numeric"
-                  error={!!errors.stock}
-                />
-                <HelperText type="error" visible={!!errors.stock}>
-                  {errors.stock}
-                </HelperText>
-              </View>
-            </View>
-          </View>
+              <View style={styles.form}>
+                <View>
+                  <TextInput
+                    mode="outlined"
+                    label="Product Name"
+                    value={name}
+                    onChangeText={setName}
+                    error={!!errors.name}
+                  />
+                  <HelperText type="error" visible={!!errors.name}>
+                    {errors.name}
+                  </HelperText>
+                </View>
 
-          <View style={styles.actions}>
-            <Button onPress={onDismiss} style={{ flex: 1 }}>
-              Cancel
-            </Button>
-            <Button mode="contained" onPress={handleSubmit} style={{ flex: 1 }}>
-              Save
-            </Button>
-          </View>
-        </Surface>
+                <View>
+                  <TextInput
+                    mode="outlined"
+                    label="Category"
+                    value={category}
+                    onChangeText={setCategory}
+                    error={!!errors.category}
+                    placeholder="e.g. Coffee, Pastry"
+                  />
+                  <HelperText type="error" visible={!!errors.category}>
+                    {errors.category}
+                  </HelperText>
+                </View>
+
+                <View style={styles.row}>
+                  <View style={styles.col}>
+                    <TextInput
+                      mode="outlined"
+                      label="Price"
+                      value={price}
+                      onChangeText={setPrice}
+                      keyboardType="numeric"
+                      left={<TextInput.Affix text="₱ " />}
+                      error={!!errors.price}
+                    />
+                    <HelperText type="error" visible={!!errors.price}>
+                      {errors.price}
+                    </HelperText>
+                  </View>
+
+                  <View style={styles.col}>
+                    <TextInput
+                      mode="outlined"
+                      label="Stock"
+                      value={stock}
+                      onChangeText={setStock}
+                      keyboardType="numeric"
+                      error={!!errors.stock}
+                    />
+                    <HelperText type="error" visible={!!errors.stock}>
+                      {errors.stock}
+                    </HelperText>
+                  </View>
+                </View>
+              </View>
+
+              <View style={styles.actions}>
+                <Button onPress={onDismiss} style={{ flex: 1 }}>
+                  Cancel
+                </Button>
+                <Button
+                  mode="contained"
+                  onPress={handleSubmit}
+                  style={{ flex: 1 }}
+                >
+                  Save
+                </Button>
+              </View>
+            </ScrollView>
+          </Surface>
+        </KeyboardAvoidingView>
       </Modal>
     </Portal>
   );
@@ -221,16 +251,19 @@ export function ProductFormModal({
 
 const styles = StyleSheet.create({
   container: {
-    padding: 20,
-    alignItems: "center",
+    padding: 16,
     justifyContent: "center",
   },
   content: {
     backgroundColor: "white",
-    padding: 24,
     borderRadius: 16,
     width: "100%",
     maxWidth: 500,
+    maxHeight: Dimensions.get("window").height * 0.85,
+    overflow: "hidden",
+  },
+  scrollContent: {
+    padding: 24,
     gap: 24,
   },
   title: {
@@ -256,6 +289,11 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
   },
+  imageContainer: {
+    position: "relative",
+    width: 120,
+    height: 120,
+  },
   imagePicker: {
     width: 120,
     height: 120,
@@ -280,8 +318,10 @@ const styles = StyleSheet.create({
   },
   removeImageBtn: {
     position: "absolute",
-    top: -8,
-    right: -8,
-    backgroundColor: "rgba(0,0,0,0.5)",
+    top: -6,
+    right: -6,
+    margin: 0,
+    elevation: 4,
+    zIndex: 1,
   },
 });

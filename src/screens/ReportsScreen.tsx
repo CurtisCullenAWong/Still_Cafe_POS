@@ -1,8 +1,7 @@
-import React, { useState, useEffect, useCallback, useMemo } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import {
   View,
   StyleSheet,
-  FlatList,
   Alert,
   ScrollView,
   StatusBar,
@@ -21,8 +20,11 @@ import {
   TextInput,
 } from "react-native-paper";
 import { printAsync } from "expo-print";
-import { generateReceiptHtml } from "../utils/receiptGenerator";
-import { useDB } from "../context/DatabaseContext";
+import {
+  generateReceiptHtml,
+  generateSalesReportHtml,
+} from "../utils/receiptGenerator";
+import { useDatabaseContext } from "../context/DatabaseContext";
 import { Sale } from "../types/db";
 import {
   Trash2,
@@ -49,7 +51,7 @@ export function ReportsScreen() {
   const theme = useTheme();
   const insets = useSafeAreaInsets();
   const { db, deleteSale, refreshData, getSalesReport, getSalesChartData } =
-    useDB();
+    useDatabaseContext();
   const [view, setView] = useState<"daily" | "weekly" | "monthly" | "custom">(
     "daily",
   );
@@ -61,7 +63,18 @@ export function ReportsScreen() {
   const [tempDates, setTempDates] = useState({ start: "", end: "" });
   const [loading, setLoading] = useState(false);
 
-  const stats = useMemo(() => {
+  const [stats, setStats] = useState({
+    grossSales: 0,
+    totalSales: 0,
+    totalTransactions: 0,
+    totalVat: 0,
+    totalDiscounts: 0,
+    vatableSales: 0,
+    vatExemptSales: 0,
+  });
+  const [chartData, setChartData] = useState<any[]>([]);
+
+  const getDateRange = useCallback(() => {
     const now = new Date();
     let start, end;
 
@@ -78,114 +91,75 @@ export function ReportsScreen() {
       start = customRange.start;
       end = customRange.end;
     }
+    return { start, end };
+  }, [view, customRange]);
 
-    const filteredSales = db.sales.filter((s) => {
-      const d = parseISO(s.created_at);
-      return d >= start && d <= end;
+  const fetchReportData = useCallback(async () => {
+    setLoading(true);
+    const { start, end } = getDateRange();
+
+    // Fetch Stats
+    const report = await getSalesReport(start, end);
+
+    // Calculate derived vals (Net Vatable/Exempt) based on current settings
+    // Note: DB returns "Gross" (Inclusive) for vatable/exempt categories.
+    // We divide by (1 + vat/100) to get the Base Amount.
+    const vatRate = (db.settings.vat_percentage || 12) / 100;
+    const vatableSales = report.vatableGross / (1 + vatRate);
+    const vatExemptSales = report.exemptGross / (1 + vatRate);
+
+    setStats({
+      ...report,
+      vatableSales,
+      vatExemptSales,
     });
 
-    return {
-      grossSales: filteredSales.reduce((sum, s) => sum + s.total_amount, 0),
-      totalSales: filteredSales.reduce((sum, s) => sum + s.final_amount, 0),
-      totalTransactions: filteredSales.length,
-      totalVat: filteredSales.reduce((sum, s) => sum + s.vat_amount, 0),
-      totalDiscounts: filteredSales.reduce(
-        (sum, s) => sum + s.discount_amount,
-        0,
-      ),
-      vatableSales: filteredSales.reduce((sum, s) => {
-        // If there's VAT, it's a vatable sale. Original net = (total_amount / 1.12)
-        return (
-          sum +
-          (s.vat_amount > 0
-            ? s.total_amount / (1 + (db.settings.vat_percentage || 12) / 100)
-            : 0)
-        );
-      }, 0),
-      vatExemptSales: filteredSales.reduce((sum, s) => {
-        // If VAT is 0 and it was a Senior/PWD sale, it's exempt
-        return (
-          sum +
-          (s.vat_amount === 0 && s.discount_type
-            ? s.total_amount / (1 + (db.settings.vat_percentage || 12) / 100)
-            : 0)
-        );
-      }, 0),
-    };
-  }, [view, db.sales, db.settings.vat_percentage]);
+    // Fetch Chart Data
+    const rawChartData = await getSalesChartData(start, end);
 
-  const chartData = useMemo(() => {
+    // Process Chart Data (Fill gaps)
     const filledChartData = [];
-    const now = new Date();
-    let daysToDisplay = 7;
-    let startDate = subDays(now, 6);
+    const daysDiff = Math.ceil(
+      (end.getTime() - start.getTime()) / (1000 * 60 * 60 * 24),
+    );
+    // Limit to reasonable bars
+    const actualDays = Math.min(daysDiff, 31); // Max 31 bars
 
-    if (view === "daily" || view === "weekly") {
-      daysToDisplay = 7;
-      startDate = subDays(now, 6);
-    } else if (view === "monthly") {
-      startDate = startOfMonth(now);
-      const end = endOfMonth(now);
-      const diffTime = Math.abs(end.getTime() - startDate.getTime());
-      daysToDisplay = Math.ceil(diffTime / (1000 * 60 * 60 * 24)) + 1;
-    } else if (view === "custom") {
-      const diffTime = Math.abs(
-        customRange.end.getTime() - customRange.start.getTime(),
-      );
-      daysToDisplay = Math.ceil(diffTime / (1000 * 60 * 60 * 24)) + 1;
-      startDate = customRange.start;
-    }
-
-    // Limit to 31 days max for chart performance/readability
-    const actualDays = Math.min(daysToDisplay, 31);
-
+    // Loop from Start Date
     for (let i = 0; i < actualDays; i++) {
-      const d = new Date(startDate);
+      const d = new Date(start);
       d.setDate(d.getDate() + i);
       const dateStr = format(d, "yyyy-MM-dd");
 
-      const dayTotal = db.sales
-        .filter((s) => s.created_at.startsWith(dateStr))
-        .reduce((sum, s) => sum + s.final_amount, 0);
+      const dayData = rawChartData.find((r: any) => r.date === dateStr);
+      const val = dayData ? dayData.total : 0;
 
       filledChartData.push({
-        value: dayTotal,
+        value: val,
         label: format(d, "dd"),
         labelTextStyle: { color: theme.colors.outline, fontSize: 10 },
         frontColor: theme.colors.primary,
       });
     }
-    return filledChartData;
-  }, [db.sales, theme.colors, view, customRange]);
+
+    setChartData(filledChartData);
+    setLoading(false);
+  }, [
+    getDateRange,
+    getSalesReport,
+    getSalesChartData,
+    db.settings.vat_percentage,
+    theme.colors,
+  ]);
+
+  useEffect(() => {
+    fetchReportData();
+  }, [fetchReportData, refreshData]);
 
   const loadData = useCallback(async () => {
     setLoading(true);
     await refreshData();
-    setLoading(false);
   }, [refreshData]);
-
-  useEffect(() => {
-    // We already have data from context, but can refresh if needed
-    // or just rely on the context's own initial load
-  }, []);
-
-  const handleVoidSale = (sale: Sale) => {
-    Alert.alert(
-      "Void Sale",
-      `Are you sure you want to void this sale? (ID: ${sale.id.slice(0, 8)})`,
-      [
-        { text: "Cancel", style: "cancel" },
-        {
-          text: "Void",
-          style: "destructive",
-          onPress: async () => {
-            await deleteSale(sale.id);
-            loadData();
-          },
-        },
-      ],
-    );
-  };
 
   const handleApplyCustomRange = () => {
     try {
@@ -222,16 +196,55 @@ export function ReportsScreen() {
           discountType: sale.discount_type || null,
         },
         paymentMethod: sale.payment_method,
-        cashReceived: sale.final_amount, // Fallback as we don't store actual cash received
+        cashReceived: sale.final_amount,
         change: 0,
         timestamp: parseISO(sale.created_at),
         transactionId: sale.id,
         isReprint: true,
       });
 
-      await printAsync({ html });
+      await printAsync({ html, width: 576 });
     } catch (error) {
       Alert.alert("Error", "Failed to print receipt");
+    }
+  };
+
+  const handleVoidSale = (sale: Sale) => {
+    Alert.alert(
+      "Void Sale",
+      `Are you sure you want to void this sale? (ID: ${sale.id.slice(0, 8)})`,
+      [
+        { text: "Cancel", style: "cancel" },
+        {
+          text: "Void",
+          style: "destructive",
+          onPress: async () => {
+            await deleteSale(sale.id);
+          },
+        },
+      ],
+    );
+  };
+
+  const handlePrintReport = async () => {
+    try {
+      const { start, end } = getDateRange();
+      const html = generateSalesReportHtml({
+        dateRange: { start, end },
+        settings: db.settings,
+        stats: {
+          grossSales: stats.grossSales,
+          totalSales: stats.totalSales,
+          totalTransactions: stats.totalTransactions,
+          totalVat: stats.totalVat,
+          totalDiscounts: stats.totalDiscounts,
+          vatableSales: stats.vatableSales,
+          vatExemptSales: stats.vatExemptSales,
+        },
+      });
+      await printAsync({ html, width: 576 });
+    } catch (error) {
+      Alert.alert("Error", "Failed to print report");
     }
   };
 
@@ -287,22 +300,31 @@ export function ReportsScreen() {
   return (
     <View style={styles.container}>
       <StatusBar barStyle="dark-content" backgroundColor="#fff" translucent />
-      <View style={[styles.header, { paddingTop: insets.top + 24 }]}>
+      <View style={[styles.header, { paddingTop: insets.top + 16 }]}>
         <View>
-          <Text variant="headlineMedium" style={styles.headerTitle}>
+          <Text variant="titleLarge" style={styles.headerTitle}>
             Sales Reports
           </Text>
           <Text variant="bodyMedium" style={{ color: theme.colors.secondary }}>
             Store Performance Overview
           </Text>
         </View>
-        <IconButton
-          icon={({ size }) => (
-            <RefreshCw size={size} color={theme.colors.primary} />
-          )}
-          onPress={loadData}
-          disabled={loading}
-        />
+        <View style={{ flexDirection: "row" }}>
+          <IconButton
+            icon={({ size }) => (
+              <Printer size={size} color={theme.colors.primary} />
+            )}
+            onPress={handlePrintReport}
+            disabled={loading}
+          />
+          <IconButton
+            icon={({ size }) => (
+              <RefreshCw size={size} color={theme.colors.primary} />
+            )}
+            onPress={loadData}
+            disabled={loading}
+          />
+        </View>
       </View>
 
       <View style={styles.filterContainer}>
@@ -475,7 +497,7 @@ export function ReportsScreen() {
                 noOfSections={3}
                 maxValue={Math.max(...chartData.map((d) => d.value), 100) * 1.2}
                 width={300}
-                height={200}
+                height={160}
                 isAnimated
               />
             ) : (
@@ -489,23 +511,20 @@ export function ReportsScreen() {
           <Text variant="titleMedium" style={styles.sectionHeader}>
             Recent Transactions
           </Text>
-          {/* We show the last 5 transactions from the context, filtered by our current view ideally, but context has all. 
-                         Let's just show top 5 from the global list for now as 'Recent' implies mostly today/latest. 
-                      */}
-          <FlatList
-            data={db.sales.slice(0, 5)} // Just top 5
-            keyExtractor={(item) => item.id}
-            renderItem={renderItem}
-            scrollEnabled={false}
-            ListEmptyComponent={
-              <View style={styles.emptyState}>
-                <Receipt size={32} color={theme.colors.outline} />
-                <Text style={{ color: theme.colors.outline, marginTop: 8 }}>
-                  No recent sales
-                </Text>
-              </View>
-            }
-          />
+          {db.sales.length > 0 ? (
+            <View>
+              {db.sales.slice(0, 5).map((item) => (
+                <View key={item.id}>{renderItem({ item })}</View>
+              ))}
+            </View>
+          ) : (
+            <View style={styles.emptyState}>
+              <Receipt size={32} color={theme.colors.outline} />
+              <Text style={{ color: theme.colors.outline, marginTop: 8 }}>
+                No recent sales
+              </Text>
+            </View>
+          )}
         </View>
       </ScrollView>
     </View>
@@ -545,7 +564,7 @@ const styles = StyleSheet.create({
     backgroundColor: "#f3f4f6",
   },
   header: {
-    padding: 24,
+    padding: 16,
     backgroundColor: "#fff",
     borderBottomWidth: 1,
     borderBottomColor: "#e5e7eb",
@@ -622,18 +641,18 @@ const styles = StyleSheet.create({
   statsGrid: {
     flexDirection: "row",
     flexWrap: "wrap",
-    gap: 12,
-    marginBottom: 24,
+    gap: 8,
+    marginBottom: 16,
   },
   statCard: {
     flex: 1,
     minWidth: "45%",
-    padding: 16,
+    padding: 12,
     borderRadius: 12,
     backgroundColor: "#fff",
     flexDirection: "row",
     alignItems: "center",
-    gap: 12,
+    gap: 8,
   },
   iconBox: {
     width: 40,
@@ -645,8 +664,8 @@ const styles = StyleSheet.create({
   sectionContainer: {
     backgroundColor: "#fff",
     borderRadius: 16,
-    padding: 16,
-    marginBottom: 16,
+    padding: 12,
+    marginBottom: 12,
     elevation: 1,
     shadowColor: "#000",
     shadowOffset: { width: 0, height: 1 },

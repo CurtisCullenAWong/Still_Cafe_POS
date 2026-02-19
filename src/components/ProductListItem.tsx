@@ -3,40 +3,41 @@ import { View, StyleSheet, TouchableOpacity, Image } from "react-native";
 import { Text, Surface, useTheme } from "react-native-paper";
 import { Product } from "../types/db";
 
-interface ProductCardProps {
+interface ProductListItemProps {
   product: Product;
   onPress: (product: Product) => void;
   disabled?: boolean;
 }
 
-export const ProductCard = React.memo(
-  ({ product, onPress, disabled }: ProductCardProps) => {
+export const ProductListItem = React.memo(
+  ({ product, onPress, disabled }: ProductListItemProps) => {
     const theme = useTheme();
 
-    // Generate a placeholder initial for visual appeal
+    // Generate a placeholder initial
     const initial = product.name.charAt(0).toUpperCase();
 
-    // Stock status styles
+    // Stock status
     const isLowStock = product.stock_qty <= 10;
     const isOutOfStock = product.stock_qty <= 0;
 
     return (
       <Surface
         style={[
-          styles.card,
+          styles.container,
           { backgroundColor: theme.colors.surface },
           disabled && styles.disabled,
         ]}
-        elevation={1}
+        elevation={0} // Flatter look for list items
       >
         <TouchableOpacity
           style={styles.touchable}
           onPress={() => onPress(product)}
           disabled={disabled || isOutOfStock}
         >
+          {/* Image / Placeholder */}
           <View
             style={[
-              styles.imagePlaceholder,
+              styles.imageContainer,
               {
                 backgroundColor: theme.colors.surfaceVariant,
                 borderColor: theme.colors.outline,
@@ -57,14 +58,23 @@ export const ProductCard = React.memo(
             )}
           </View>
 
-          <View style={styles.content}>
-            <Text variant="titleMedium" numberOfLines={1} style={styles.name}>
-              {product.name}
-            </Text>
-
-            <View style={styles.footer}>
+          {/* Content */}
+          <View style={styles.contentContainer}>
+            <View style={styles.textContainer}>
+              <Text variant="titleMedium" numberOfLines={1} style={styles.name}>
+                {product.name}
+              </Text>
               <Text
-                variant="titleSmall"
+                variant="bodySmall"
+                style={{ color: theme.colors.secondary }}
+              >
+                {product.category}
+              </Text>
+            </View>
+
+            <View style={styles.rightContainer}>
+              <Text
+                variant="titleMedium"
                 style={{ color: theme.colors.primary, fontWeight: "bold" }}
               >
                 ₱{(product.price ?? 0).toFixed(2)}
@@ -87,6 +97,14 @@ export const ProductCard = React.memo(
             </View>
           </View>
         </TouchableOpacity>
+        <View
+          style={{
+            height: 1,
+            backgroundColor: theme.colors.outline,
+            opacity: 0.1,
+            marginLeft: 72,
+          }}
+        />
       </Surface>
     );
   },
@@ -98,73 +116,75 @@ export const ProductCard = React.memo(
       prev.product.stock_qty === next.product.stock_qty &&
       prev.product.image_uri === next.product.image_uri &&
       prev.disabled === next.disabled
-      // onPress is handled by parent useCallback
     );
   },
 );
 
 const styles = StyleSheet.create({
-  card: {
-    borderRadius: 12,
-    margin: 4,
-    flex: 1, // Expand to fill grid cell
-    overflow: "hidden",
+  container: {
+    marginBottom: 0,
   },
   touchable: {
-    padding: 8,
+    flexDirection: "row",
+    padding: 12,
+    alignItems: "center",
   },
   disabled: {
     opacity: 0.6,
   },
-  imagePlaceholder: {
-    aspectRatio: 1,
+  imageContainer: {
+    width: 48,
+    height: 48,
     borderRadius: 8,
     alignItems: "center",
     justifyContent: "center",
-    marginBottom: 8,
+    marginRight: 12,
     borderWidth: 1,
-  },
-  initial: {
-    fontSize: 24,
-    fontWeight: "800",
-    opacity: 0.3,
+    overflow: "hidden",
   },
   image: {
     width: "100%",
     height: "100%",
-    borderRadius: 12,
   },
-  content: {
-    gap: 6,
+  initial: {
+    fontSize: 20,
+    fontWeight: "800",
+    opacity: 0.3,
   },
-  name: {
-    fontWeight: "600",
-    fontSize: 14,
-    letterSpacing: -0.3,
-  },
-  footer: {
+  contentContainer: {
+    flex: 1,
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
-    marginTop: 4,
+  },
+  textContainer: {
+    flex: 1,
+    paddingRight: 8,
+  },
+  name: {
+    fontWeight: "600",
+  },
+  rightContainer: {
+    alignItems: "flex-end",
+    gap: 4,
   },
   badge: {
-    paddingHorizontal: 8,
-    paddingVertical: 3,
-    borderRadius: 6,
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 4,
   },
   badgeSuccess: {
-    backgroundColor: "#dcfce7", // green-100
+    backgroundColor: "#dcfce7",
   },
   badgeWarning: {
-    backgroundColor: "#fef9c3", // yellow-100
+    backgroundColor: "#fef9c3",
   },
   badgeError: {
-    backgroundColor: "#fee2e2", // red-100
+    backgroundColor: "#fee2e2",
   },
   badgeText: {
-    fontSize: 11,
+    fontSize: 10,
     fontWeight: "700",
-    color: "#374151", // gray-700
+    color: "#374151",
   },
 });

@@ -17,15 +17,17 @@ import {
   useTheme,
   Button,
 } from "react-native-paper";
-import { useDB } from "../context/DatabaseContext";
+import { useDatabaseContext } from "../context/DatabaseContext";
 import { Product } from "../types/db";
 import { ProductFormModal } from "../components/ProductFormModal";
-import { Search, X, Edit, Trash2, Package } from "lucide-react-native";
+import { InventoryItem } from "../components/InventoryItem";
+import { Search, X, Package } from "lucide-react-native";
 
 export function InventoryScreen() {
   const theme = useTheme();
   const insets = useSafeAreaInsets();
-  const { db, addProduct, updateProduct, deleteProduct, refreshData } = useDB();
+  const { db, addProduct, updateProduct, deleteProduct, refreshData } =
+    useDatabaseContext();
   const [searchQuery, setSearchQuery] = useState("");
   const [refreshing, setRefreshing] = useState(false);
 
@@ -49,25 +51,28 @@ export function InventoryScreen() {
     setModalVisible(true);
   };
 
-  const handleEdit = (product: Product) => {
+  const handleEdit = React.useCallback((product: Product) => {
     setEditingProduct(product);
     setModalVisible(true);
-  };
+  }, []);
 
-  const handleDelete = (product: Product) => {
-    Alert.alert(
-      "Delete Product",
-      `Are you sure you want to delete "${product.name}"?`,
-      [
-        { text: "Cancel", style: "cancel" },
-        {
-          text: "Delete",
-          style: "destructive",
-          onPress: () => deleteProduct(product.id),
-        },
-      ],
-    );
-  };
+  const handleDelete = React.useCallback(
+    (product: Product) => {
+      Alert.alert(
+        "Delete Product",
+        `Are you sure you want to delete "${product.name}"?`,
+        [
+          { text: "Cancel", style: "cancel" },
+          {
+            text: "Delete",
+            style: "destructive",
+            onPress: () => deleteProduct(product.id),
+          },
+        ],
+      );
+    },
+    [deleteProduct],
+  );
 
   const handleSave = (data: Omit<Product, "id" | "created_at">) => {
     if (editingProduct) {
@@ -77,81 +82,16 @@ export function InventoryScreen() {
     }
   };
 
-  const renderItem = ({ item }: { item: Product }) => (
-    <Surface style={styles.itemContainer} elevation={0}>
-      <View style={styles.itemImageContainer}>
-        {item.image_uri ? (
-          <Image source={{ uri: item.image_uri }} style={styles.itemImage} />
-        ) : (
-          <View
-            style={[
-              styles.imagePlaceholder,
-              { backgroundColor: theme.colors.surfaceVariant },
-            ]}
-          >
-            <Package size={24} color={theme.colors.onSurfaceVariant} />
-          </View>
-        )}
-      </View>
-      <View style={styles.itemInfo}>
-        <View style={styles.itemHeader}>
-          <Text variant="titleMedium" style={styles.itemName}>
-            {item.name}
-          </Text>
-          <View
-            style={[
-              styles.badge,
-              { backgroundColor: theme.colors.secondaryContainer },
-            ]}
-          >
-            <Text
-              variant="labelSmall"
-              style={{ color: theme.colors.onSecondaryContainer }}
-            >
-              {item.category}
-            </Text>
-          </View>
-        </View>
-
-        <View style={styles.itemStats}>
-          <Text variant="bodyMedium">
-            Price:{" "}
-            <Text style={{ fontWeight: "bold" }}>
-              ₱{(item.price ?? 0).toFixed(2)}
-            </Text>
-          </Text>
-          <Text variant="bodyMedium">
-            Stock:{" "}
-            <Text
-              style={{
-                fontWeight: "bold",
-                color:
-                  item.stock_qty <= 10
-                    ? theme.colors.error
-                    : theme.colors.onSurface,
-              }}
-            >
-              {item.stock_qty}
-            </Text>
-          </Text>
-        </View>
-      </View>
-
-      <View style={styles.itemActions}>
-        <IconButton
-          icon={({ size, color }) => <Edit size={size} color={color} />}
-          size={20}
-          onPress={() => handleEdit(item)}
-        />
-        <IconButton
-          icon={({ size, color }) => (
-            <Trash2 size={size} color={theme.colors.error} />
-          )}
-          size={20}
-          onPress={() => handleDelete(item)}
-        />
-      </View>
-    </Surface>
+  const renderItem = React.useCallback(
+    ({ item }: { item: Product }) => (
+      <InventoryItem
+        item={item}
+        onEdit={handleEdit}
+        onDelete={handleDelete}
+        theme={theme}
+      />
+    ),
+    [handleEdit, handleDelete, theme],
   );
 
   const onRefresh = React.useCallback(async () => {
@@ -163,8 +103,8 @@ export function InventoryScreen() {
   return (
     <View style={styles.container}>
       <StatusBar barStyle="dark-content" backgroundColor="#fff" translucent />
-      <View style={[styles.header, { paddingTop: insets.top + 24 }]}>
-        <Text variant="headlineMedium" style={styles.headerTitle}>
+      <View style={[styles.header, { paddingTop: insets.top + 16 }]}>
+        <Text variant="titleLarge" style={styles.headerTitle}>
           Inventory Management
         </Text>
         <Searchbar
@@ -184,6 +124,10 @@ export function InventoryScreen() {
         data={filteredProducts}
         keyExtractor={(item) => item.id}
         renderItem={renderItem}
+        initialNumToRender={10}
+        maxToRenderPerBatch={10}
+        windowSize={5}
+        removeClippedSubviews={true}
         contentContainerStyle={[
           styles.listContent,
           { paddingBottom: 100 + insets.bottom },
@@ -232,11 +176,11 @@ const styles = StyleSheet.create({
     backgroundColor: "#f3f4f6",
   },
   header: {
-    padding: 24,
+    padding: 16,
     backgroundColor: "#fff",
     borderBottomWidth: 1,
     borderBottomColor: "#e5e7eb",
-    gap: 16,
+    gap: 12,
   },
   headerTitle: {
     fontWeight: "bold",
@@ -246,61 +190,8 @@ const styles = StyleSheet.create({
     borderRadius: 12,
   },
   listContent: {
-    padding: 16,
+    padding: 12,
     paddingBottom: 100, // FAB space
-  },
-  itemContainer: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    padding: 16,
-    marginBottom: 12,
-    borderRadius: 12,
-    backgroundColor: "#fff",
-    // Border
-    borderWidth: 1,
-    borderColor: "#e5e7eb",
-  },
-  itemInfo: {
-    flex: 1,
-    gap: 8,
-  },
-  itemHeader: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 12,
-  },
-  itemName: {
-    fontWeight: "600",
-  },
-  badge: {
-    paddingHorizontal: 8,
-    paddingVertical: 2,
-    borderRadius: 12,
-  },
-  itemStats: {
-    flexDirection: "row",
-    gap: 24,
-  },
-  itemActions: {
-    flexDirection: "row",
-  },
-  itemImageContainer: {
-    width: 60,
-    height: 60,
-    borderRadius: 8,
-    overflow: "hidden",
-    marginRight: 16,
-  },
-  itemImage: {
-    width: "100%",
-    height: "100%",
-  },
-  imagePlaceholder: {
-    width: "100%",
-    height: "100%",
-    alignItems: "center",
-    justifyContent: "center",
   },
   fab: {
     position: "absolute",

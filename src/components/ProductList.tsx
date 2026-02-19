@@ -1,18 +1,12 @@
 import React, { useMemo } from "react";
-import {
-  View,
-  StyleSheet,
-  FlatList,
-  Dimensions,
-  useWindowDimensions,
-} from "react-native";
+import { View, StyleSheet, FlatList, useWindowDimensions } from "react-native";
 import { Searchbar, Text, useTheme } from "react-native-paper";
 import { Product } from "../types/db";
-import { ProductCard } from "./ProductCard";
+import { ProductListItem } from "./ProductListItem";
 import { CategoryFilter } from "./CategoryFilter";
 import { Search, X } from "lucide-react-native";
 
-interface ProductGridProps {
+interface ProductListProps {
   products: Product[];
   onAddToCart: (product: Product) => void;
   refreshing?: boolean;
@@ -20,13 +14,13 @@ interface ProductGridProps {
   bottomInset?: number;
 }
 
-export function ProductGrid({
+export function ProductList({
   products,
   onAddToCart,
   refreshing,
   onRefresh,
   bottomInset = 0,
-}: ProductGridProps) {
+}: ProductListProps) {
   const [searchQuery, setSearchQuery] = React.useState("");
   const [selectedCategory, setSelectedCategory] = React.useState("All");
   const theme = useTheme();
@@ -51,15 +45,6 @@ export function ProductGrid({
       .sort((a, b) => a.name.localeCompare(b.name));
   }, [products, searchQuery, selectedCategory]);
 
-  const { width } = useWindowDimensions();
-
-  // Dynamic columns:
-  // < 600px: 2 columns
-  // 600-900px: 3 columns
-  // > 900px: 4 columns
-  const numColumns = width < 600 ? 2 : width < 900 ? 3 : 4;
-  const key = `grid-${numColumns}`; // Force re-render when columns change
-
   return (
     <View style={styles.container}>
       <View style={styles.header}>
@@ -82,32 +67,19 @@ export function ProductGrid({
       <FlatList
         refreshing={refreshing}
         onRefresh={onRefresh}
-        key={key}
         data={filteredProducts}
         keyExtractor={(item) => item.id}
-        renderItem={React.useCallback(
-          ({ item }: { item: Product }) => (
-            <View
-              style={[
-                styles.gridItem,
-                { flex: 1 / numColumns, maxWidth: `${100 / numColumns}%` },
-              ]}
-            >
-              <ProductCard product={item} onPress={onAddToCart} />
-            </View>
-          ),
-          [numColumns, onAddToCart],
+        renderItem={({ item }) => (
+          <ProductListItem product={item} onPress={onAddToCart} />
         )}
-        numColumns={numColumns}
-        initialNumToRender={10}
-        maxToRenderPerBatch={10}
+        initialNumToRender={15}
+        maxToRenderPerBatch={15}
         windowSize={5}
         removeClippedSubviews={true}
         contentContainerStyle={[
           styles.listContent,
           { paddingBottom: bottomInset + 20 },
         ]}
-        columnWrapperStyle={styles.row}
         ListEmptyComponent={
           <View style={styles.emptyContainer}>
             <Text variant="bodyLarge" style={{ color: theme.colors.outline }}>
@@ -135,13 +107,7 @@ const styles = StyleSheet.create({
     borderRadius: 12,
   },
   listContent: {
-    padding: 8,
-  },
-  row: {
-    justifyContent: "flex-start",
-  },
-  gridItem: {
-    padding: 2,
+    paddingVertical: 8,
   },
   emptyContainer: {
     padding: 32,

@@ -11,5 +11,6 @@ config.resolver.unstable_conditionNames = [
   "react-native",
 ];
 config.resolver.sourceExts = [...config.resolver.sourceExts, "mjs", "cjs"];
+config.resolver.assetExts = [...config.resolver.assetExts, "sql"];
 
 module.exports = config;

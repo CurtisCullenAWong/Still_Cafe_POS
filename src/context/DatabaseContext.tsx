@@ -1,13 +1,13 @@
 import React, { createContext, useContext, ReactNode } from "react";
-import { useDatabase } from "../hooks/useDatabase";
+import { useDB } from "../hooks/useDB";
 import { View, Text, ActivityIndicator, StyleSheet } from "react-native";
 
-type DatabaseContextType = ReturnType<typeof useDatabase>;
+type DatabaseContextType = ReturnType<typeof useDB>;
 
 const DatabaseContext = createContext<DatabaseContextType | null>(null);
 
 export function DatabaseProvider({ children }: { children: ReactNode }) {
-  const dbState = useDatabase();
+  const dbState = useDB();
 
   if (!dbState.loaded) {
     return (
@@ -25,10 +25,12 @@ export function DatabaseProvider({ children }: { children: ReactNode }) {
   );
 }
 
-export function useDB() {
+export function useDatabaseContext() {
   const context = useContext(DatabaseContext);
   if (!context) {
-    throw new Error("useDB must be used within a DatabaseProvider");
+    throw new Error(
+      "useDatabaseContext must be used within a DatabaseProvider",
+    );
   }
   return context;
 }
