@@ -29,7 +29,10 @@ export default ({ config }) => ({
       package: "com.stillcafe.pos",
     },
     web: {
-      favicon: "./assets/favicon.png",
+      favicon: "./assets/adaptive-icon.png",
+    },
+    experiments: {
+      baseUrl: "/Still_Cafe_POS",
     },
     extra: {
       eas: {

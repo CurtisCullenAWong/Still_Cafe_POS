@@ -7,7 +7,7 @@ import {
   DEFAULT_SETTINGS,
   SaleItem,
 } from "../types/db";
-import { Alert } from "react-native";
+import { Alert, Platform } from "react-native";
 import { getDB, initDatabase } from "../services/database";
 import * as FileSystem from "expo-file-system/legacy";
 import * as Sharing from "expo-sharing";
@@ -363,11 +363,24 @@ export function useDB() {
       };
 
       const fileName = `pos_backup_${new Date().toISOString().split("T")[0]}.json`;
+      const jsonStr = JSON.stringify(backupData, null, 2);
+
+      if (Platform.OS === "web") {
+        const blob = new Blob([jsonStr], { type: "application/json" });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement("a");
+        a.href = url;
+        a.download = fileName;
+        a.click();
+        URL.revokeObjectURL(url);
+        return;
+      }
+
       const fileUri = FileSystem.cacheDirectory + fileName;
 
       await FileSystem.writeAsStringAsync(
         fileUri,
-        JSON.stringify(backupData, null, 2),
+        jsonStr,
       );
 
       const canShare = await Sharing.isAvailableAsync();
@@ -395,9 +408,20 @@ export function useDB() {
 
       if (result.canceled) return;
 
-      const content = await FileSystem.readAsStringAsync(result.assets[0].uri);
+      let content: string;
+      if (Platform.OS === "web") {
+        const asset = result.assets[0];
+        if (asset.file) {
+          content = await asset.file.text();
+        } else {
+          const res = await fetch(asset.uri);
+          content = await res.text();
+        }
+      } else {
+        content = await FileSystem.readAsStringAsync(result.assets[0].uri);
+      }
 
-      let backup;
+      let backup: any;
       try {
         backup = JSON.parse(content);
       } catch (e) {

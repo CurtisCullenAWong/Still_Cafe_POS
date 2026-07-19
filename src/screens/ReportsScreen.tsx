@@ -19,10 +19,10 @@ import {
   Modal,
   TextInput,
 } from "react-native-paper";
-import { printAsync } from "expo-print";
 import {
   generateReceiptHtml,
   generateSalesReportHtml,
+  printHtml,
 } from "../utils/receiptGenerator";
 import { useDatabaseContext } from "../context/DatabaseContext";
 import { Sale } from "../types/db";
@@ -203,7 +203,7 @@ export function ReportsScreen() {
         isReprint: true,
       });
 
-      await printAsync({ html, width: 576 });
+      await printHtml(html);
     } catch (error) {
       Alert.alert("Error", "Failed to print receipt");
     }
@@ -242,7 +242,7 @@ export function ReportsScreen() {
           vatExemptSales: stats.vatExemptSales,
         },
       });
-      await printAsync({ html, width: 576 });
+      await printHtml(html);
     } catch (error) {
       Alert.alert("Error", "Failed to print report");
     }

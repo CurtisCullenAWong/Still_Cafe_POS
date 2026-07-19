@@ -1,6 +1,7 @@
 import React from "react";
 import { NavigationContainer, DefaultTheme } from "@react-navigation/native";
 import { createBottomTabNavigator } from "@react-navigation/bottom-tabs";
+import { PlatformPressable } from "@react-navigation/elements";
 import { PaperProvider, MD3LightTheme } from "react-native-paper";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import {
@@ -9,7 +10,7 @@ import {
   LayoutDashboard,
   Settings as SettingsIcon,
 } from "lucide-react-native";
-import { Platform, Pressable, useWindowDimensions, View } from "react-native";
+import { useWindowDimensions, View } from "react-native";
 
 // Screens
 import { SalesScreen } from "../screens/SalesScreen";
@@ -103,18 +104,20 @@ export function AppNavigator() {
               marginTop: 4,
             },
             tabBarButton: (props) => {
-              const { style, children, ref, ...rest } = props as any;
               const isFirstTab = route.name === "Sales";
 
               return (
                 <View
-                  style={[
-                    style,
-                    { flexDirection: "row", alignItems: "center" },
-                  ]}
+                  style={{
+                    flex: 1,
+                    flexDirection: "row",
+                    alignItems: "center",
+                    height: "100%",
+                  }}
                 >
                   {!isFirstTab && (
                     <View
+                      pointerEvents="none"
                       style={{
                         width: 1,
                         height: "40%",
@@ -125,24 +128,18 @@ export function AppNavigator() {
                       }}
                     />
                   )}
-                  <Pressable
-                    {...rest}
-                    android_ripple={{
-                      color: theme.colors.primary + "15",
-                      borderless: true,
-                    }}
-                    style={({ pressed }) => [
+                  <PlatformPressable
+                    {...props}
+                    pressOpacity={0.6}
+                    style={[
+                      props.style,
                       {
                         flex: 1,
-                        height: "100%",
                         alignItems: "center",
                         justifyContent: "center",
-                        opacity: Platform.OS === "ios" && pressed ? 0.6 : 1,
                       },
                     ]}
-                  >
-                    {children}
-                  </Pressable>
+                  />
                 </View>
               );
             },

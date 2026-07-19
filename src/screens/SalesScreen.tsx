@@ -9,8 +9,7 @@ import {
 } from "react-native";
 import { useTheme } from "react-native-paper";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { printAsync } from "expo-print";
-import { generateReceiptHtml } from "../utils/receiptGenerator";
+import { generateReceiptHtml, printHtml } from "../utils/receiptGenerator";
 import { useDatabaseContext } from "../context/DatabaseContext";
 import { ProductGrid } from "../components/ProductGrid";
 import { ProductList } from "../components/ProductList";
@@ -122,10 +121,7 @@ export function SalesScreen() {
         });
 
         // Print
-        await printAsync({
-          html,
-          width: 576, // 80mm width in points at 180 DPI
-        });
+        await printHtml(html);
       } catch (error) {
         console.error("Sale or Print failed", error);
         Alert.alert(

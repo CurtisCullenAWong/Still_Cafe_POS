@@ -1,7 +1,7 @@
 import * as SQLite from "expo-sqlite";
 import { Asset } from "expo-asset";
-// Update your import to point to the legacy API
 import * as FileSystem from "expo-file-system/legacy";
+import { Platform } from "react-native";
 
 const DB_NAME = "pos.db";
 
@@ -29,7 +29,14 @@ export const initDatabase = async () => {
   try {
     const setupAsset = Asset.fromModule(require("./setup.sql"));
     await setupAsset.downloadAsync();
-    const setupSql = await FileSystem.readAsStringAsync(setupAsset.localUri!);
+    
+    let setupSql: string;
+    if (Platform.OS === "web") {
+      const response = await fetch(setupAsset.uri);
+      setupSql = await response.text();
+    } else {
+      setupSql = await FileSystem.readAsStringAsync(setupAsset.localUri!);
+    }
 
     // Execute the unified setup script
     // This includes CREATE TABLE IF NOT EXISTS and INSERT OR IGNORE statements
