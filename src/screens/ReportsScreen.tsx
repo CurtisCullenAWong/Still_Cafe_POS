@@ -6,6 +6,7 @@ import {
   ScrollView,
   StatusBar,
   RefreshControl,
+  useWindowDimensions,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import {
@@ -50,6 +51,7 @@ import {
 export function ReportsScreen() {
   const theme = useTheme();
   const insets = useSafeAreaInsets();
+  const { width } = useWindowDimensions();
   const { db, deleteSale, refreshData, getSalesReport, getSalesChartData } =
     useDatabaseContext();
   const [view, setView] = useState<"daily" | "weekly" | "monthly" | "custom">(
@@ -73,6 +75,20 @@ export function ReportsScreen() {
     vatExemptSales: 0,
   });
   const [chartData, setChartData] = useState<any[]>([]);
+
+  const isNarrowScreen = width < 380;
+  const showChecks = width >= 420;
+
+  // Compute dynamic chart sizing
+  const availableChartWidth = Math.max(200, width - 72);
+  const barWidth = chartData.length > 20 ? 6 : chartData.length > 10 ? 12 : 18;
+  const computedSpacing = Math.max(
+    4,
+    Math.floor(
+      (availableChartWidth - chartData.length * barWidth) /
+        Math.max(1, chartData.length),
+    ),
+  );
 
   const getDateRange = useCallback(() => {
     const now = new Date();
@@ -257,7 +273,7 @@ export function ReportsScreen() {
         <Text variant="bodySmall" style={{ color: theme.colors.secondary }}>
           {format(parseISO(item.created_at), "MMM dd, HH:mm")}
         </Text>
-        <Text variant="bodySmall">
+        <Text variant="bodySmall" numberOfLines={1}>
           {item.payment_method.toUpperCase()} •{" "}
           {item.items ? item.items.length : 0} items
         </Text>
@@ -331,11 +347,12 @@ export function ReportsScreen() {
         <SegmentedButtons
           value={view}
           onValueChange={(v) => setView(v as any)}
+          density={isNarrowScreen ? "high" : "regular"}
           buttons={[
-            { value: "daily", label: "Day", showSelectedCheck: true },
-            { value: "weekly", label: "Week", showSelectedCheck: true },
-            { value: "monthly", label: "Month", showSelectedCheck: true },
-            { value: "custom", label: "Custom", showSelectedCheck: true },
+            { value: "daily", label: "Day", showSelectedCheck: showChecks },
+            { value: "weekly", label: "Week", showSelectedCheck: showChecks },
+            { value: "monthly", label: "Month", showSelectedCheck: showChecks },
+            { value: "custom", label: "Custom", showSelectedCheck: showChecks },
           ]}
           style={styles.segmentedButton}
         />
@@ -435,24 +452,28 @@ export function ReportsScreen() {
             icon={DollarSign}
             color={theme.colors.primary}
             subtitle="After Discounts"
+            isNarrow={isNarrowScreen}
           />
           <StatCard
             title="Transactions"
             value={stats.totalTransactions.toString()}
             icon={Receipt}
             color="#3b82f6"
+            isNarrow={isNarrowScreen}
           />
           <StatCard
             title="VATable Sales"
             value={`₱${(stats.vatableSales ?? 0).toFixed(2)}`}
             icon={Percent}
             color="#6366f1"
+            isNarrow={isNarrowScreen}
           />
           <StatCard
             title="VAT (12%)"
             value={`₱${(stats.totalVat ?? 0).toFixed(2)}`}
             icon={Percent}
             color="#f97316"
+            isNarrow={isNarrowScreen}
           />
           <StatCard
             title="Exempt Sales"
@@ -460,12 +481,14 @@ export function ReportsScreen() {
             icon={Accessibility}
             color="#10b981"
             subtitle="Senior/PWD"
+            isNarrow={isNarrowScreen}
           />
           <StatCard
             title="Discounts"
             value={`₱${(stats.totalDiscounts ?? 0).toFixed(2)}`}
             icon={Calendar}
             color="#a855f7"
+            isNarrow={isNarrowScreen}
           />
         </View>
 
@@ -482,12 +505,8 @@ export function ReportsScreen() {
             {chartData.length > 0 ? (
               <BarChart
                 data={chartData}
-                barWidth={
-                  chartData.length > 20 ? 8 : chartData.length > 10 ? 15 : 22
-                }
-                spacing={
-                  chartData.length > 20 ? 4 : chartData.length > 10 ? 10 : 20
-                }
+                barWidth={barWidth}
+                spacing={computedSpacing}
                 roundedTop
                 roundedBottom
                 hideRules
@@ -496,7 +515,7 @@ export function ReportsScreen() {
                 yAxisTextStyle={{ color: theme.colors.outline, fontSize: 10 }}
                 noOfSections={3}
                 maxValue={Math.max(...chartData.map((d) => d.value), 100) * 1.2}
-                width={300}
+                width={availableChartWidth}
                 height={160}
                 isAnimated
               />
@@ -531,13 +550,23 @@ export function ReportsScreen() {
   );
 }
 
-function StatCard({ title, value, icon: Icon, color, subtitle }: any) {
+function StatCard({
+  title,
+  value,
+  icon: Icon,
+  color,
+  subtitle,
+  isNarrow,
+}: any) {
   return (
-    <Surface style={styles.statCard} elevation={1}>
+    <Surface
+      style={[styles.statCard, isNarrow && styles.statCardNarrow]}
+      elevation={1}
+    >
       <View style={[styles.iconBox, { backgroundColor: color }]}>
         <Icon size={20} color="#fff" />
       </View>
-      <View style={{ flex: 1 }}>
+      <View style={{ flex: 1, minWidth: 0 }}>
         <Text
           variant="labelSmall"
           style={{ color: "#6b7280" }}
@@ -545,11 +574,19 @@ function StatCard({ title, value, icon: Icon, color, subtitle }: any) {
         >
           {title}
         </Text>
-        <Text variant="titleMedium" style={{ fontWeight: "bold" }}>
+        <Text
+          variant="titleMedium"
+          style={{ fontWeight: "bold" }}
+          numberOfLines={1}
+        >
           {value}
         </Text>
         {subtitle && (
-          <Text variant="labelSmall" style={{ color: "#9ca3af", fontSize: 10 }}>
+          <Text
+            variant="labelSmall"
+            style={{ color: "#9ca3af", fontSize: 10 }}
+            numberOfLines={1}
+          >
             {subtitle}
           </Text>
         )}
@@ -594,6 +631,7 @@ const styles = StyleSheet.create({
   },
   rangeRow: {
     flexDirection: "row",
+    flexWrap: "wrap",
     gap: 12,
     justifyContent: "center",
   },
@@ -602,7 +640,7 @@ const styles = StyleSheet.create({
   },
   dateButton: {
     borderRadius: 8,
-    minWidth: 140,
+    minWidth: 130,
   },
   modalContainer: {
     padding: 20,
@@ -654,6 +692,9 @@ const styles = StyleSheet.create({
     alignItems: "center",
     gap: 8,
   },
+  statCardNarrow: {
+    minWidth: "100%",
+  },
   iconBox: {
     width: 40,
     height: 40,
@@ -694,12 +735,14 @@ const styles = StyleSheet.create({
     borderColor: "#e5e7eb",
   },
   saleInfo: {
+    flex: 1,
+    marginRight: 8,
     gap: 2,
   },
   saleActions: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 8,
+    gap: 4,
   },
   badge: {
     paddingHorizontal: 6,
@@ -712,3 +755,4 @@ const styles = StyleSheet.create({
     padding: 24,
   },
 });
+

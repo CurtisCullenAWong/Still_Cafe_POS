@@ -31,6 +31,7 @@ interface CartProps {
   onCheckout: (details: any) => void;
   settings: Settings;
   bottomInset?: number;
+  onClose?: () => void;
 }
 
 export function Cart({
@@ -41,6 +42,7 @@ export function Cart({
   onCheckout,
   settings,
   bottomInset = 0,
+  onClose,
 }: CartProps) {
   const theme = useTheme();
   const [discountType, setDiscountType] = React.useState<
@@ -104,6 +106,14 @@ export function Cart({
           { backgroundColor: theme.colors.background },
         ]}
       >
+        {onClose && (
+          <IconButton
+            icon="close"
+            size={24}
+            onPress={onClose}
+            style={styles.emptyCloseBtn}
+          />
+        )}
         <Surface style={styles.emptySurface} elevation={0}>
           <IconButton
             icon="cart-outline"
@@ -113,6 +123,15 @@ export function Cart({
           <Text variant="titleMedium" style={{ color: theme.colors.outline }}>
             Cart is empty
           </Text>
+          {onClose && (
+            <Button
+              mode="outlined"
+              onPress={onClose}
+              style={{ marginTop: 16 }}
+            >
+              Back to POS
+            </Button>
+          )}
         </Surface>
       </View>
     );
@@ -197,14 +216,19 @@ export function Cart({
           <Text variant="titleMedium" style={styles.headerTitle}>
             Current Order ({items.length})
           </Text>
-          <Button
-            mode="text"
-            compact
-            textColor={theme.colors.error}
-            onPress={onClearCart}
-          >
-            Clear
-          </Button>
+          <View style={styles.headerActionRow}>
+            <Button
+              mode="text"
+              compact
+              textColor={theme.colors.error}
+              onPress={onClearCart}
+            >
+              Clear
+            </Button>
+            {onClose && (
+              <IconButton icon="close" size={22} onPress={onClose} />
+            )}
+          </View>
         </View>
       </View>
 
@@ -362,6 +386,13 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: "center",
     alignItems: "center",
+    position: "relative",
+  },
+  emptyCloseBtn: {
+    position: "absolute",
+    top: 12,
+    right: 12,
+    zIndex: 10,
   },
   emptySurface: {
     alignItems: "center",
@@ -393,6 +424,10 @@ const styles = StyleSheet.create({
     justifyContent: "space-between",
     alignItems: "center",
     width: "100%",
+  },
+  headerActionRow: {
+    flexDirection: "row",
+    alignItems: "center",
   },
   mobileFooter: {
     backgroundColor: "white",

@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { View, StyleSheet } from "react-native";
+import { View, StyleSheet, useWindowDimensions } from "react-native";
 import {
   Modal,
   Portal,
@@ -32,6 +32,8 @@ export function PaymentModal({
   onComplete,
 }: PaymentModalProps) {
   const theme = useTheme();
+  const { width } = useWindowDimensions();
+  const isSmallScreen = width < 380;
   const [paymentMethod, setPaymentMethod] = useState<"cash" | "gcash">("cash");
   const [amountReceived, setAmountReceived] = useState("");
   const [change, setChange] = useState(0);
@@ -62,6 +64,8 @@ export function PaymentModal({
 
   const isInvalid =
     (parseFloat(amountReceived) || 0) < checkoutDetails.finalAmount;
+
+  const styles = createStyles(isSmallScreen);
 
   return (
     <Portal>
@@ -145,43 +149,45 @@ export function PaymentModal({
   );
 }
 
-const styles = StyleSheet.create({
-  container: {
-    padding: 20,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  content: {
-    padding: 24,
-    borderRadius: 16,
-    width: "100%",
-    maxWidth: 400,
-    gap: 24,
-  },
-  title: {
-    textAlign: "center",
-    fontWeight: "bold",
-  },
-  summary: {
-    alignItems: "center",
-    gap: 8,
-  },
-  segmentedBtn: {
-    marginBottom: 8,
-  },
-  input: {
-    fontSize: 24,
-  },
-  changeContainer: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    padding: 16,
-    borderRadius: 8,
-  },
-  actions: {
-    flexDirection: "row",
-    gap: 16,
-    marginTop: 8,
-  },
-});
+const createStyles = (isSmall: boolean) =>
+  StyleSheet.create({
+    container: {
+      padding: isSmall ? 12 : 20,
+      alignItems: "center",
+      justifyContent: "center",
+    },
+    content: {
+      padding: isSmall ? 16 : 24,
+      borderRadius: 16,
+      width: "100%",
+      maxWidth: 400,
+      gap: isSmall ? 16 : 24,
+    },
+    title: {
+      textAlign: "center",
+      fontWeight: "bold",
+    },
+    summary: {
+      alignItems: "center",
+      gap: 8,
+    },
+    segmentedBtn: {
+      marginBottom: 8,
+    },
+    input: {
+      fontSize: isSmall ? 18 : 24,
+    },
+    changeContainer: {
+      flexDirection: "row",
+      justifyContent: "space-between",
+      alignItems: "center",
+      padding: isSmall ? 12 : 16,
+      borderRadius: 8,
+    },
+    actions: {
+      flexDirection: "row",
+      gap: 12,
+      marginTop: 8,
+    },
+  });
+

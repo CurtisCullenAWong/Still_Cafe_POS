@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { View, StyleSheet, ScrollView, Alert, StatusBar } from "react-native";
+import { View, StyleSheet, ScrollView, Alert, StatusBar, useWindowDimensions } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import {
   Text,
@@ -23,8 +23,10 @@ import {
 export function SettingsScreen() {
   const theme = useTheme();
   const insets = useSafeAreaInsets();
+  const { width } = useWindowDimensions();
   const { db, updateSettings, exportBackup, importBackup } =
     useDatabaseContext();
+  const isNarrow = width < 400;
 
   const [vat, setVat] = useState("");
   const [senior, setSenior] = useState("");
@@ -151,12 +153,12 @@ export function SettingsScreen() {
             </Text>
           </View>
 
-          <View style={styles.actionRow}>
+          <View style={[styles.actionRow, isNarrow && styles.actionRowVertical]}>
             <Button
               mode="outlined"
               onPress={exportBackup}
               icon={() => <Download size={18} color={theme.colors.primary} />}
-              style={{ flex: 1 }}
+              style={[{ flex: 1 }, isNarrow && { flex: 0 }]}
             >
               Backup Data
             </Button>
@@ -164,7 +166,7 @@ export function SettingsScreen() {
               mode="outlined"
               onPress={importBackup}
               icon={() => <Upload size={18} color={theme.colors.primary} />}
-              style={{ flex: 1 }}
+              style={[{ flex: 1 }, isNarrow && { flex: 0 }]}
             >
               Restore Data
             </Button>
@@ -242,5 +244,8 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     gap: 12,
     marginTop: 16,
+  },
+  actionRowVertical: {
+    flexDirection: "column",
   },
 });

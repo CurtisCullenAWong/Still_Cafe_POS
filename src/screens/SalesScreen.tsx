@@ -6,8 +6,16 @@ import {
   useWindowDimensions,
   Alert,
   Platform,
+  TouchableOpacity,
 } from "react-native";
-import { useTheme } from "react-native-paper";
+import {
+  useTheme,
+  Portal,
+  Modal,
+  Surface,
+  Button,
+  Text,
+} from "react-native-paper";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { generateReceiptHtml, printHtml } from "../utils/receiptGenerator";
 import { useDatabaseContext } from "../context/DatabaseContext";
@@ -137,17 +145,30 @@ export function SalesScreen() {
     [checkoutData, createSale, cartItems, db.settings],
   );
 
+  const [isMobileCartOpen, setIsMobileCartOpen] = useState(false);
+
+  const totalCartItems = React.useMemo(
+    () => cartItems.reduce((sum, item) => sum + item.quantity, 0),
+    [cartItems],
+  );
+
+  const totalCartSubtotal = React.useMemo(
+    () =>
+      cartItems.reduce(
+        (sum, item) => sum + item.product.price * item.quantity,
+        0,
+      ),
+    [cartItems],
+  );
+
   const onRefresh = React.useCallback(async () => {
     setRefreshing(true);
     await refreshData();
     setRefreshing(false);
   }, [refreshData]);
 
-  const { width, height: screenHeight } = useWindowDimensions();
+  const { width } = useWindowDimensions();
   const isLandscape = width >= 768;
-
-  // In a tab navigator, the bottom insets are already handled by the tab bar.
-  // We use a small amount of internal padding instead.
   const bottomSpace = 8;
 
   return (
@@ -167,23 +188,8 @@ export function SalesScreen() {
         backgroundColor="transparent"
         translucent
       />
-      <View
-        style={[
-          styles.rightPane,
-          !isLandscape && styles.rightPanePortrait,
-          !isLandscape && { height: screenHeight * 0.45 }, // Slightly taller cart area on mobile
-        ]}
-      >
-        <Cart
-          items={cartItems}
-          onUpdateQuantity={handleUpdateQuantity}
-          onRemoveItem={handleRemoveItem}
-          onClearCart={handleClearCart}
-          onCheckout={handleCheckout}
-          settings={db.settings}
-          bottomInset={0} // No inset needed for top-anchored cart
-        />
-      </View>
+
+      {/* Main Product Area */}
       <View
         style={[
           styles.leftPane,
@@ -205,10 +211,91 @@ export function SalesScreen() {
             onAddToCart={handleAddToCart}
             refreshing={refreshing}
             onRefresh={onRefresh}
-            bottomInset={bottomSpace + 80} // Add extra padding for floating cart
+            bottomInset={totalCartItems > 0 ? 80 : bottomSpace}
           />
         )}
       </View>
+
+      {/* Right Cart Pane (Tablet & Desktop only) */}
+      {isLandscape && (
+        <View style={styles.rightPane}>
+          <Cart
+            items={cartItems}
+            onUpdateQuantity={handleUpdateQuantity}
+            onRemoveItem={handleRemoveItem}
+            onClearCart={handleClearCart}
+            onCheckout={handleCheckout}
+            settings={db.settings}
+            bottomInset={0}
+          />
+        </View>
+      )}
+
+      {/* Floating Cart Bar (Mobile only) */}
+      {!isLandscape && totalCartItems > 0 && (
+        <Surface style={styles.floatingCartBar} elevation={4}>
+          <TouchableOpacity
+            style={styles.floatingCartTouch}
+            onPress={() => setIsMobileCartOpen(true)}
+            activeOpacity={0.85}
+          >
+            <View
+              style={[
+                styles.badgeContainer,
+                { backgroundColor: theme.colors.primary },
+              ]}
+            >
+              <Text style={styles.badgeText}>{totalCartItems}</Text>
+            </View>
+            <View style={styles.floatingCartTextGroup}>
+              <Text
+                variant="labelSmall"
+                style={{ color: theme.colors.outline, fontWeight: "600" }}
+              >
+                CURRENT ORDER
+              </Text>
+              <Text
+                variant="titleMedium"
+                style={{ fontWeight: "800", color: theme.colors.primary }}
+              >
+                ₱{totalCartSubtotal.toFixed(2)}
+              </Text>
+            </View>
+            <Button
+              mode="contained"
+              onPress={() => setIsMobileCartOpen(true)}
+              style={{ borderRadius: 12 }}
+              contentStyle={{ height: 40, paddingHorizontal: 12 }}
+            >
+              View Cart
+            </Button>
+          </TouchableOpacity>
+        </Surface>
+      )}
+
+      {/* Mobile Cart Sheet Modal */}
+      {!isLandscape && (
+        <Portal>
+          <Modal
+            visible={isMobileCartOpen}
+            onDismiss={() => setIsMobileCartOpen(false)}
+            contentContainerStyle={styles.mobileCartModalContainer}
+          >
+            <Cart
+              items={cartItems}
+              onUpdateQuantity={handleUpdateQuantity}
+              onRemoveItem={handleRemoveItem}
+              onClearCart={handleClearCart}
+              onCheckout={(details) => {
+                setIsMobileCartOpen(false);
+                handleCheckout(details);
+              }}
+              settings={db.settings}
+              onClose={() => setIsMobileCartOpen(false)}
+            />
+          </Modal>
+        </Portal>
+      )}
 
       <PaymentModal
         visible={isCheckoutOpen}
@@ -225,7 +312,7 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     flexDirection: "row",
-    backgroundColor: "#fff", // Fallback, updated inline
+    backgroundColor: "#fff",
   },
   containerPortrait: {
     flexDirection: "column",
@@ -237,23 +324,48 @@ const styles = StyleSheet.create({
   leftPanePortrait: {
     flex: 1,
     borderRightWidth: 0,
-    borderBottomWidth: 1,
   },
   rightPane: {
     flex: 1, // 33% width
     maxWidth: 450,
   },
-  rightPanePortrait: {
-    flex: 0,
-    maxWidth: "100%",
-    backgroundColor: "white",
-    borderBottomLeftRadius: 24,
-    borderBottomRightRadius: 24,
-    elevation: 8,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.1,
-    shadowRadius: 8,
-    zIndex: 10, // Ensure it sits above the grid
+  floatingCartBar: {
+    position: "absolute",
+    bottom: 12,
+    left: 12,
+    right: 12,
+    borderRadius: 16,
+    backgroundColor: "#fff",
+    overflow: "hidden",
+  },
+  floatingCartTouch: {
+    flexDirection: "row",
+    alignItems: "center",
+    padding: 12,
+    gap: 12,
+  },
+  badgeContainer: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  badgeText: {
+    color: "#fff",
+    fontWeight: "bold",
+    fontSize: 15,
+  },
+  floatingCartTextGroup: {
+    flex: 1,
+  },
+  mobileCartModalContainer: {
+    flex: 1,
+    marginTop: 40,
+    borderTopLeftRadius: 24,
+    borderTopRightRadius: 24,
+    backgroundColor: "#fff",
+    overflow: "hidden",
   },
 });
+

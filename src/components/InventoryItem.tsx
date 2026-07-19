@@ -1,5 +1,5 @@
 import React from "react";
-import { View, Image, StyleSheet } from "react-native";
+import { View, Image, StyleSheet, useWindowDimensions } from "react-native";
 import { Text, Surface, IconButton, MD3Theme } from "react-native-paper";
 import { Package, Edit, Trash2 } from "lucide-react-native";
 import { Product } from "../types/db";
@@ -13,6 +13,8 @@ interface InventoryItemProps {
 
 export const InventoryItem = React.memo(
   ({ item, onEdit, onDelete, theme }: InventoryItemProps) => {
+    const { width } = useWindowDimensions();
+    const isNarrow = width < 380;
     return (
       <Surface style={styles.itemContainer} elevation={0}>
         <View style={styles.itemImageContainer}>
@@ -49,7 +51,7 @@ export const InventoryItem = React.memo(
             </View>
           </View>
 
-          <View style={styles.itemStats}>
+        <View style={[styles.itemStats, isNarrow && styles.itemStatsNarrow]}>
             <Text variant="bodyMedium">
               Price:{" "}
               <Text style={{ fontWeight: "bold" }}>
@@ -72,6 +74,7 @@ export const InventoryItem = React.memo(
             </Text>
           </View>
         </View>
+
 
         <View style={styles.itemActions}>
           <IconButton
@@ -136,6 +139,10 @@ const styles = StyleSheet.create({
   itemStats: {
     flexDirection: "row",
     gap: 24,
+    flexWrap: "wrap",
+  },
+  itemStatsNarrow: {
+    gap: 8,
   },
   itemActions: {
     flexDirection: "row",

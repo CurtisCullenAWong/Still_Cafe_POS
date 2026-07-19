@@ -7,7 +7,7 @@ import {
   ScrollView,
   KeyboardAvoidingView,
   Platform,
-  Dimensions,
+  useWindowDimensions,
 } from "react-native";
 import {
   Modal,
@@ -38,6 +38,7 @@ export function ProductFormModal({
   initialData,
 }: ProductFormModalProps) {
   const theme = useTheme();
+  const { height: windowHeight } = useWindowDimensions();
 
   const [name, setName] = useState("");
   const [category, setCategory] = useState("");
@@ -119,7 +120,7 @@ export function ProductFormModal({
           behavior={Platform.OS === "ios" ? "padding" : "height"}
           style={{ width: "100%", alignItems: "center" }}
         >
-          <Surface style={styles.content}>
+          <Surface style={[styles.content, { maxHeight: windowHeight * 0.88 }]}>
             <ScrollView
               showsVerticalScrollIndicator={false}
               contentContainerStyle={styles.scrollContent}
@@ -259,7 +260,6 @@ const styles = StyleSheet.create({
     borderRadius: 16,
     width: "100%",
     maxWidth: 500,
-    maxHeight: Dimensions.get("window").height * 0.85,
     overflow: "hidden",
   },
   scrollContent: {
